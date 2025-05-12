@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import Layout from "../components/Layout";
-import { products as initialProducts, Product, categories } from "../data/products";
+import { products as initialProducts, Product, categories as initialCategories } from "../data/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,11 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash, Pencil, Plus } from "lucide-react";
+import { Trash, Pencil, Plus, Upload, ChevronLeft, Search } from "lucide-react";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 
 const AdminPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [categories, setCategories] = useState<string[]>(initialCategories);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("products");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [newCategory, setNewCategory] = useState<string>("");
+  const [editingCategory, setEditingCategory] = useState<{index: number, value: string} | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({
     name: "",
     description: "",
@@ -25,6 +38,15 @@ const AdminPage: React.FC = () => {
     rating: 0,
     stock: 0
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+
+  // Filter products based on search term
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -52,11 +74,33 @@ const AdminPage: React.FC = () => {
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setFormData({ ...product });
+    setActiveTab("add-product");
+    // If there's an image, set image preview
+    if (product.image) {
+      setImagePreview(product.image);
+    }
   };
 
   const handleDeleteProduct = (productId: string) => {
     setProducts(products.filter(product => product.id !== productId));
     toast.success("Product deleted successfully!");
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setImagePreview(result);
+        setFormData({
+          ...formData,
+          image: result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -92,17 +136,10 @@ const AdminPage: React.FC = () => {
     }
     
     // Reset form
-    setFormData({
-      name: "",
-      description: "",
-      price: 0,
-      category: "Electronics",
-      image: "",
-      featured: false,
-      rating: 0,
-      stock: 0
-    });
-    setEditingProduct(null);
+    resetForm();
+    
+    // Navigate to products tab
+    setActiveTab("products");
   };
 
   const resetForm = () => {
@@ -117,6 +154,64 @@ const AdminPage: React.FC = () => {
       stock: 0
     });
     setEditingProduct(null);
+    setImageFile(null);
+    setImagePreview("");
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategory.trim()) {
+      toast.error("Category name cannot be empty");
+      return;
+    }
+    
+    if (categories.includes(newCategory)) {
+      toast.error("Category already exists");
+      return;
+    }
+    
+    setCategories([...categories, newCategory]);
+    setNewCategory("");
+    toast.success("Category added successfully!");
+  };
+
+  const handleDeleteCategory = (categoryToDelete: string) => {
+    if (categoryToDelete === "All") {
+      toast.error("Cannot delete the 'All' category");
+      return;
+    }
+    
+    setCategories(categories.filter(category => category !== categoryToDelete));
+    toast.success("Category deleted successfully!");
+  };
+
+  const handleEditCategoryStart = (index: number, value: string) => {
+    setEditingCategory({ index, value });
+  };
+
+  const handleEditCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editingCategory) {
+      setEditingCategory({ ...editingCategory, value: e.target.value });
+    }
+  };
+
+  const handleEditCategorySave = () => {
+    if (!editingCategory) return;
+    
+    if (!editingCategory.value.trim()) {
+      toast.error("Category name cannot be empty");
+      return;
+    }
+    
+    if (categories.includes(editingCategory.value) && categories[editingCategory.index] !== editingCategory.value) {
+      toast.error("Category already exists");
+      return;
+    }
+    
+    const newCategories = [...categories];
+    newCategories[editingCategory.index] = editingCategory.value;
+    setCategories(newCategories);
+    setEditingCategory(null);
+    toast.success("Category updated successfully!");
   };
 
   return (
@@ -124,33 +219,56 @@ const AdminPage: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
 
-        <Tabs defaultValue="products">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="add-product">Add/Edit Product</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="orders" disabled>Orders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products">
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-6">
-                <h2 className="text-2xl font-semibold mb-6">Manage Products</h2>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-semibold">Manage Products</h2>
+                  <div className="flex gap-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                      <Input 
+                        placeholder="Search products..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-64"
+                      />
+                    </div>
+                    <Button 
+                      onClick={() => { 
+                        resetForm(); 
+                        setActiveTab("add-product"); 
+                      }}
+                      className="bg-shop-blue hover:bg-blue-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add New Product
+                    </Button>
+                  </div>
+                </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">Featured</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {products.map((product) => (
-                        <tr key={product.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Stock</TableHead>
+                        <TableHead>Featured</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProducts.map((product) => (
+                        <TableRow key={product.id} className="hover:bg-gray-50">
+                          <TableCell>
                             <div className="flex items-center">
                               <div className="w-10 h-10 flex-shrink-0 mr-3">
                                 <img 
@@ -161,12 +279,12 @@ const AdminPage: React.FC = () => {
                               </div>
                               <div className="font-medium text-gray-900">{product.name}</div>
                             </div>
-                          </td>
-                          <td className="px-4 py-4">{product.category}</td>
-                          <td className="px-4 py-4">${product.price.toFixed(2)}</td>
-                          <td className="px-4 py-4">{product.stock}</td>
-                          <td className="px-4 py-4">{product.featured ? "Yes" : "No"}</td>
-                          <td className="px-4 py-4">
+                          </TableCell>
+                          <TableCell>{product.category}</TableCell>
+                          <TableCell>${product.price.toFixed(2)}</TableCell>
+                          <TableCell>{product.stock}</TableCell>
+                          <TableCell>{product.featured ? "Yes" : "No"}</TableCell>
+                          <TableCell>
                             <div className="flex space-x-2">
                               <Button 
                                 variant="outline" 
@@ -183,11 +301,17 @@ const AdminPage: React.FC = () => {
                                 <Trash className="h-4 w-4 mr-1" /> Delete
                               </Button>
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
+                  
+                  {filteredProducts.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-lg text-gray-500">No products found</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -196,9 +320,18 @@ const AdminPage: React.FC = () => {
           <TabsContent value="add-product">
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-6">
-                <h2 className="text-2xl font-semibold mb-6">
-                  {editingProduct ? "Edit Product" : "Add New Product"}
-                </h2>
+                <div className="flex items-center mb-6">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setActiveTab("products")} 
+                    className="mr-4"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Back to Products
+                  </Button>
+                  <h2 className="text-2xl font-semibold">
+                    {editingProduct ? "Edit Product" : "Add New Product"}
+                  </h2>
+                </div>
                 <form onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -255,14 +388,44 @@ const AdminPage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="image">Image URL</Label>
-                      <Input
-                        id="image"
-                        name="image"
-                        value={formData.image || ""}
-                        onChange={handleInputChange}
-                        placeholder="https://example.com/image.jpg"
-                      />
+                      <Label htmlFor="image">Product Image</Label>
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-4">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => document.getElementById('image-upload')?.click()}
+                            className="flex items-center gap-2"
+                          >
+                            <Upload size={16} /> Upload Image
+                          </Button>
+                          <Input
+                            id="image-upload"
+                            name="image-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                          />
+                          <Input
+                            id="image-url"
+                            name="image"
+                            value={formData.image || ""}
+                            onChange={handleInputChange}
+                            placeholder="Or enter image URL"
+                            className="flex-1"
+                          />
+                        </div>
+                        {imagePreview && (
+                          <div className="mt-2 relative w-32 h-32">
+                            <img 
+                              src={imagePreview} 
+                              alt="Preview" 
+                              className="w-full h-full object-cover rounded-md"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="rating">Rating</Label>
@@ -298,7 +461,14 @@ const AdminPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex justify-end space-x-4 mt-6">
-                    <Button type="button" variant="outline" onClick={resetForm}>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        resetForm();
+                        setActiveTab("products");
+                      }}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit" className="bg-shop-blue hover:bg-blue-700">
@@ -306,6 +476,89 @@ const AdminPage: React.FC = () => {
                     </Button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="p-6">
+                <h2 className="text-2xl font-semibold mb-6">Manage Categories</h2>
+                
+                <div className="flex items-end gap-4 mb-6">
+                  <div className="flex-1">
+                    <Label htmlFor="new-category">New Category</Label>
+                    <Input
+                      id="new-category"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      placeholder="Enter category name"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleAddCategory}
+                    className="bg-shop-blue hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add Category
+                  </Button>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Category Name</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {categories.map((category, index) => (
+                        <TableRow key={category}>
+                          <TableCell>
+                            {editingCategory && editingCategory.index === index ? (
+                              <Input
+                                value={editingCategory.value}
+                                onChange={handleEditCategoryChange}
+                                autoFocus
+                                onBlur={handleEditCategorySave}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleEditCategorySave();
+                                  if (e.key === 'Escape') setEditingCategory(null);
+                                }}
+                              />
+                            ) : (
+                              category
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end space-x-2">
+                              {category !== "All" && (
+                                <>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => handleEditCategoryStart(index, category)}
+                                    disabled={editingCategory !== null}
+                                  >
+                                    <Pencil className="h-4 w-4 mr-1" /> Edit
+                                  </Button>
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    onClick={() => handleDeleteCategory(category)}
+                                    disabled={editingCategory !== null}
+                                  >
+                                    <Trash className="h-4 w-4 mr-1" /> Delete
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           </TabsContent>
