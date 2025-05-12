@@ -4,12 +4,15 @@ import { useLocation } from "react-router-dom";
 import Layout from "../components/Layout";
 import CategoryFilter from "../components/CategoryFilter";
 import ProductGrid from "../components/ProductGrid";
-import { getProductsByCategory, products as allProducts, Product } from "../data/products";
+import { Product } from "../data/products";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useProducts } from "@/context/ProductContext";
+import { getProductsByCategory } from "@/context/ProductContext";
 
 const ProductsPage: React.FC = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
+  const { products } = useProducts();
   
   const initialCategory = queryParams.get("category") || "All";
   const initialSearch = queryParams.get("search") || "";
@@ -23,7 +26,7 @@ const ProductsPage: React.FC = () => {
 
   useEffect(() => {
     // Get products by category
-    let filtered = getProductsByCategory(activeCategory);
+    let filtered = getProductsByCategory(products, activeCategory);
     
     // Apply featured filter if needed
     if (featuredOnly) {
@@ -59,7 +62,7 @@ const ProductsPage: React.FC = () => {
     }
     
     setFilteredProducts(filtered);
-  }, [activeCategory, searchTerm, sortBy, featuredOnly]);
+  }, [activeCategory, searchTerm, sortBy, featuredOnly, products]);
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);

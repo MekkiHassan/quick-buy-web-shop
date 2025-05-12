@@ -1,10 +1,12 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { categories } from "../data/products";
 import { Card, CardContent } from "@/components/ui/card";
+import { useProducts } from "@/context/ProductContext";
 
 const CategorySection: React.FC = () => {
+  const { categories } = useProducts();
+  
   // Remove "All" from categories for this section
   const displayCategories = categories.filter(cat => cat !== "All");
   
@@ -25,7 +27,7 @@ const CategorySection: React.FC = () => {
               <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg">
                 <div className="h-40 overflow-hidden">
                   <img
-                    src={categoryImages[category]}
+                    src={categoryImages[category] || "https://images.unsplash.com/photo-1472851294608-062f824d29cc"}
                     alt={category}
                     className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
                   />

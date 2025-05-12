@@ -1,19 +1,21 @@
 
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getProductById } from "../data/products";
 import Layout from "../components/Layout";
 import { useCart } from "../context/CartContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Plus, Minus, Search, ZoomIn, ZoomOut } from "lucide-react";
+import { ShoppingCart, Plus, Minus, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
+import { useProducts } from "@/context/ProductContext";
+import { getProductById } from "@/context/ProductContext";
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const product = id ? getProductById(id) : undefined;
+  const { products } = useProducts();
+  const product = id ? getProductById(products, id) : undefined;
   const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [zoomed, setZoomed] = useState(false);

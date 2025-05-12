@@ -1,7 +1,7 @@
 
 import React from "react";
-import { categories } from "../data/products";
 import { Button } from "@/components/ui/button";
+import { useProducts } from "@/context/ProductContext";
 
 interface CategoryFilterProps {
   activeCategory: string;
@@ -12,6 +12,8 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   activeCategory,
   onCategoryChange,
 }) => {
+  const { categories } = useProducts();
+  
   return (
     <div className="mb-6">
       <h2 className="text-xl font-semibold mb-3">Categories</h2>

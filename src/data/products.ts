@@ -19,6 +19,7 @@ export const categories = [
   "Home & Kitchen"
 ];
 
+// These are just initial data that will be used only if no data in localStorage
 export const products: Product[] = [
   {
     id: "1",
@@ -110,15 +111,23 @@ export const products: Product[] = [
   }
 ];
 
+// These direct export functions are kept for backward compatibility
+// but the actual implementations use the context
 export const getProductById = (id: string): Product | undefined => {
-  return products.find(product => product.id === id);
+  const savedProducts = localStorage.getItem("ecommerceProducts");
+  const productsList = savedProducts ? JSON.parse(savedProducts) : products;
+  return productsList.find((product: Product) => product.id === id);
 };
 
 export const getFeaturedProducts = (): Product[] => {
-  return products.filter(product => product.featured);
+  const savedProducts = localStorage.getItem("ecommerceProducts");
+  const productsList = savedProducts ? JSON.parse(savedProducts) : products;
+  return productsList.filter((product: Product) => product.featured);
 };
 
 export const getProductsByCategory = (category: string): Product[] => {
-  if (category === "All") return products;
-  return products.filter(product => product.category === category);
+  const savedProducts = localStorage.getItem("ecommerceProducts");
+  const productsList = savedProducts ? JSON.parse(savedProducts) : products;
+  if (category === "All") return productsList;
+  return productsList.filter((product: Product) => product.category === category);
 };

@@ -1,12 +1,14 @@
 
 import React from "react";
-import { getFeaturedProducts } from "../data/products";
 import { Link } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import { Button } from "@/components/ui/button";
+import { useProducts } from "@/context/ProductContext";
+import { getFeaturedProducts } from "@/context/ProductContext";
 
 const FeaturedProducts: React.FC = () => {
-  const featuredProducts = getFeaturedProducts();
+  const { products } = useProducts();
+  const featuredProducts = getFeaturedProducts(products);
 
   return (
     <section className="py-12 bg-gray-50">
@@ -17,10 +19,15 @@ const FeaturedProducts: React.FC = () => {
             <Link to="/products">View All</Link>
           </Button>
         </div>
-        <div className="product-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {featuredProducts.slice(0, 4).map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
+          {featuredProducts.length === 0 && (
+            <div className="col-span-full text-center py-10">
+              <p className="text-gray-500">No featured products available</p>
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -1,16 +1,17 @@
 
 import React, { useState } from "react";
 import Layout from "../components/Layout";
-import { products as initialProducts, Product, categories as initialCategories } from "../data/products";
+import { Product } from "../data/products";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductList from "@/components/admin/ProductList";
 import ProductForm from "@/components/admin/ProductForm";
 import CategoryManager from "@/components/admin/CategoryManager";
+import OrdersList from "@/components/admin/OrdersList"; // New component for orders
+import { useProducts } from "@/context/ProductContext";
 
 const AdminPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [categories, setCategories] = useState<string[]>(initialCategories);
+  const { products, categories, updateProducts, updateCategories } = useProducts();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<string>("products");
 
@@ -20,14 +21,14 @@ const AdminPage: React.FC = () => {
   };
 
   const handleDeleteProduct = (productId: string) => {
-    setProducts(products.filter(product => product.id !== productId));
+    updateProducts(products.filter(product => product.id !== productId));
     toast.success("Product deleted successfully!");
   };
 
   const handleSubmitProduct = (formData: Partial<Product>) => {
     if (editingProduct) {
       // Update existing product
-      setProducts(products.map(product => 
+      updateProducts(products.map(product => 
         product.id === editingProduct.id ? { ...product, ...formData } as Product : product
       ));
       toast.success("Product updated successfully!");
@@ -45,7 +46,7 @@ const AdminPage: React.FC = () => {
         stock: formData.stock || 0
       };
       
-      setProducts([...products, newProduct]);
+      updateProducts([...products, newProduct]);
       toast.success("Product added successfully!");
     }
     
@@ -69,7 +70,7 @@ const AdminPage: React.FC = () => {
   };
 
   const handleCategoryChange = (updatedCategories: string[]) => {
-    setCategories(updatedCategories);
+    updateCategories(updatedCategories);
   };
 
   return (
@@ -82,7 +83,7 @@ const AdminPage: React.FC = () => {
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="add-product">Add/Edit Product</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="orders" disabled>Orders</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="products">
@@ -108,6 +109,10 @@ const AdminPage: React.FC = () => {
               categories={categories}
               onCategoryChange={handleCategoryChange}
             />
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <OrdersList />
           </TabsContent>
         </Tabs>
       </div>
