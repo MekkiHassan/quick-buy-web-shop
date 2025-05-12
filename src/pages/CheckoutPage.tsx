@@ -64,14 +64,39 @@ const CheckoutPage: React.FC = () => {
       return;
     }
 
-    // Simulate order processing
-    toast.loading("Processing your order...", { duration: 2000 });
-    
-    setTimeout(() => {
-      clearCart();
-      navigate("/order-confirmation");
-      toast.success("Order placed successfully!");
-    }, 2000);
+    // Simulate order processing with a toast that will dismiss itself
+    toast.loading("Processing your order...", { 
+      duration: 2000, 
+      onAutoClose: () => {
+        // Create a new order in localStorage
+        const orderId = `ORD-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+        const newOrder = {
+          id: orderId,
+          date: new Date().toISOString().split('T')[0],
+          customer: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
+          items: cart.map(item => ({
+            id: item.product.id,
+            name: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price
+          })),
+          total: getCartTotal(),
+          status: "pending",
+          customerInfo: formData
+        };
+        
+        // Save to localStorage
+        const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+        localStorage.setItem("orders", JSON.stringify([...existingOrders, newOrder]));
+        
+        // Clear cart and navigate
+        clearCart();
+        navigate("/order-confirmation");
+        toast.success("Order placed successfully!");
+      }
+    });
   };
 
   // If cart is empty, redirect to products page
